@@ -3,6 +3,12 @@ extends layout
 block content
   h1= title
 
+  h3 Current data
+  p #{current_data}
+
+  h3 Historical data
+    | &nbsp;
+    small (last 50 records)
   table.table.table-stripped
     thead
       th
@@ -11,15 +17,17 @@ block content
         | Type
       th
         | Date
-      th
-        | Info
+      each field in fields
+        th #{field}
     tbody
       each box in boxes
         tr
           td #{box.external_id}
           td #{box.type}
           td #{box.date}
-          td #{box._info}
+          each field in fields
+            - var value = box._doc[field]
+            td #{value}
 
 
 
