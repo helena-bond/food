@@ -9,36 +9,32 @@ var boxModel = require('../models/box');
 /* GET home page. */
 router.get('/', suspend.promise(function *(req, res, next) {
   try {
+    var excluded = ['id', '_id', 'external_id', 'type', 'date', '__v', 'get', 'values', 'keys', 'forEach'];
     var query = url.parse(req.url,true).query;
-
-    // var per_page = parseInt(query.per_page) || 30;
-    // var page = parseInt(query.page) || 1;
-
-    var boxes = yield boxModel.find({}).sort({ date: -1 }).limit(50);
+    var boxes = yield boxModel.find({ limit: 50 }, [], suspend.resume());
     var fields = [];
+    var current_data = '';
+
     for (var i in boxes) {
-      var box = boxes[i]._doc;
+      var box = boxes[i];
       for (var j in box) {
-        if ((['id', '_id', 'external_id', 'type', 'date', '__v'].indexOf(j)) < 0 && (fields.indexOf(j) < 0)) {
+        if ((excluded.indexOf(j)) < 0 && (fields.indexOf(j) < 0)) {
           fields.push(j);
         }
       }
     }
 
-    var current_data = '';
-    if (boxes && boxes[0] && boxes[0]._doc) {
+    if (boxes && boxes[0]) {
       for (var i in fields) {
-        if (boxes[0]._doc[fields[i]]) {
+        if (boxes[0][fields[i]]) {
           if (current_data.length > 0) current_data += ', ';
-          current_data += fields[i] + ': ' + boxes[0]._doc[fields[i]];
+          current_data += fields[i] + ': ' + boxes[0][fields[i]];
         }
       }
     }
 
     res.render('index', {
       title: 'Box info',
-      // page: page,
-      // per_page: per_page,
       fields: fields,
       current_data: current_data,
       boxes: boxes
@@ -47,7 +43,6 @@ router.get('/', suspend.promise(function *(req, res, next) {
   } catch(e) {
     res.json(e.toString());
   }
-
 }));
 
 module.exports = router;
