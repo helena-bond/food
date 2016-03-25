@@ -1,15 +1,61 @@
-var mongoose = require('mongoose');
+var cassandra = require('cassandra-driver');
+var client = new cassandra.Client({ contactPoints: ['127.0.0.1'], keyspace: 'sensors'});
+var uuid = require('node-uuid');
 
-mongoose.connect('mongodb://localhost/iot_for_food');
+module.exports = {
+  find: function(options, params, callback) {
+    client.execute(this._prepareQuery(options), params, { prepare: true }, function(err, result) {
+      console.log(err)
+      if (err) {
+        callback(err, []);
+      } else {
+        callback(null, result.rows);
+      }
+    });
+  },
 
-var Schema = mongoose.Schema,
-    ObjectId = Schema.ObjectId;
+  findOne: function(id, callback) {
+    client.execute(this._prepareQuery({ where: 'id = ?'}), [id], { prepare: true }, function(err, result) {
+      if (err) {
+        callback(err, []);
+      } else {
+        callback(null, result.first());
+      }
+    });
+  },
 
-var Box = new Schema({
-  id : ObjectId,
-  external_id: String,
-  type : String,
-  date: { type: Date, default: Date.now }
-}, { strict: false });
+  insert: function(columns, values, callback) {
+    columns.push('id');
+    values.push(uuid.v4());
 
-module.exports = mongoose.model('Box', Box);
+    console.log(this._prepareInsertQuery(columns), values)
+
+    client.execute(this._prepareInsertQuery(columns), values, { prepare: true}, function (err) {
+      if (err) {
+        console.log(err)
+        callback(err, []);
+      } else {
+        callback(null);
+      }
+    });
+  },
+
+  _prepareQuery: function(options) {
+    var select = (options.select === undefined) ? 'SELECT *' : 'SELECT ' + options.select;
+    var where = (options.where === undefined) ? '' : 'WHERE ' + options.where;
+    var order = (options.order === undefined) ? '' : 'ORDER BY ' + options.order;
+    var limit = (options.limit === undefined) ? '' : 'LIMIT ' + options.limit;
+
+    return (select + ' FROM readings ' + where + ' ' + order + ' ' + limit);
+  },
+
+  _prepareInsertQuery: function(columns) {
+    var mask = []
+
+    for (var i = 0; i < columns.length; i++) {
+      mask.push('?');
+    }
+
+    return 'INSERT INTO readings (' + columns.join(',') + ') VALUES (' + mask.join(',') + ')';
+  },
+};
