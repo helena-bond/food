@@ -1,0 +1,31 @@
+extends layout
+
+block content
+  h3 Chart for #{type}
+
+  ul.pagination
+    each val in ['hour', 'day', 'month', 'all']
+      if val == range
+        li.active
+          a(href='/chart/' + type + '/' + val) #{val}
+      else
+        li
+          a(href='/chart/' + type + '/' + val) #{val}
+  br
+
+  if data.labels.length === 0
+    h4 Sorry, no data matching your query
+
+  canvas(id="myChart" width="1000" height="400")
+
+  div#data.hidden
+    - var a = JSON.stringify(data)
+    | #{a}
+
+  script(type='text/javascript').
+    var data = JSON.parse($('#data').text());
+    console.log(data)
+
+    var ctx = document.getElementById("myChart").getContext("2d");
+    var myLineChart = new Chart(ctx).Line(data);
+

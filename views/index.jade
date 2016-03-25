@@ -8,7 +8,7 @@ block content
 
   h3 Historical data
     | &nbsp;
-    small (last 50 records)
+    small (last #{per_page} records)
   table.table.table-stripped
     thead
       th
@@ -29,5 +29,60 @@ block content
             - var value = box._doc[field]
             td #{value}
 
+  ul.pagination
+    if page > 3
+      li
+        a(href='/?page=1') 1
+
+    if page > 4
+      li.disabled
+        a . . .
+
+    if pages > 5
+      if page - 2 > 0
+        - var first_page = page - 2
+      else
+        - var first_page = 1
+
+      if page + 2 <= pages
+        - var last_page = page + 2
+      else
+        - var last_page = pages
+
+    - var p = first_page
+
+    while p <= last_page
+      if p == page
+        li.active
+          a(href='/?page=' + p) #{p}
+      else
+        li
+          a(href='/?page=' + p) #{p}
+      - p++
+
+    if page < pages - 3
+      li.disabled
+        a . . .
+
+    if page < pages - 2
+      li
+        a(href='/?page=' + pages) #{pages}
+
+  br
+
+  ul.pagination
+    if page > 1
+      li
+        a(href='/?page=' + (page-1)) Prev
+    else
+      li.disabled
+        a Prev
+
+    if page < pages
+      li
+        a(href='/?page=' + (page+1)) Next
+    else
+      li.disabled
+        a Next
 
 

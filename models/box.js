@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 
 mongoose.connect('mongodb://localhost/iot_for_food');
-
+mongoose.set('debug', true);
 var Schema = mongoose.Schema,
     ObjectId = Schema.ObjectId;
 
