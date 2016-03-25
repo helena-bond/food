@@ -18,6 +18,8 @@ router.get('/', suspend.promise(function *(req, res, next) {
 
     var count = yield boxModel.count();
 
+    var nodeIds = yield boxModel.distinct('NodeId');
+
     var fields = [];
     for (var i in boxes) {
       var box = boxes[i]._doc;
@@ -45,7 +47,8 @@ router.get('/', suspend.promise(function *(req, res, next) {
       pages: Math.ceil(count / per_page),
       fields: fields,
       current_data: current_data,
-      boxes: boxes
+      boxes: boxes,
+      nodeIds: nodeIds,
     });
 
   } catch(e) {
@@ -54,139 +57,96 @@ router.get('/', suspend.promise(function *(req, res, next) {
 
 }));
 
-// router.get('/chart/:type/:range', suspend.promise(function*(req, res, next) {
+router.get('/chart/:id/:type/:range', suspend.promise(function*(req, res, next) {
+  if (['temperature', 'humidity', 'concentration'].indexOf(req.params.type) === -1) {
+    res.status(404).end();
+    return;
+  }
 
-//   try {
-//     var d = new Date(2016, 2, 19, 23, 59, 59);
-//     var hour = d.getHours();
-//     var min = d.getMinutes();
-//     var month = d.getMonth();
-//     var year = d.getFullYear();
-//     var sec = d.getSeconds();
-//     var day = d.getDate();
+  try {
+    var d = new Date();
+    var hour = d.getHours();
+    var min = d.getMinutes();
+    var month = d.getMonth();
+    var year = d.getFullYear();
+    var sec = d.getSeconds();
+    var day = d.getDate();
 
-//     var where = {};
+    var date = null;
+    var acc = null;
 
-//     switch (req.params.range) {
-//       case 'hour':
-//         where.date = { $lte: new Date(d), $gte: new Date(year, month, day, hour) };
-//         break;
-//       case 'day':
-//         where.date = { $lte: new Date(d), $gte: new Date(year, month, day) } // Get results from start of current day to current time.
-//         break;
-//       case 'month':
-//         where.date = { $lte: new Date(d), $gte: new Date(year, month, 1) } // Get results from start of current month to current time.
-//         break;
-//     }
+    switch (req.params.range) {
+      case 'hour':
+        acc = { $minute: '$date' };
+        date = { $lte: new Date(d), $gte: new Date(year, month, day, hour) };
+        break;
+      case 'day':
+         // Get results from start of current day to current time.
+        acc = { $hour: '$date' };
+        date = { $lte: new Date(d), $gte: new Date(year, month, day) }
+        break;
+      case 'month':
+        // Get results from start of current month to current time.
+        acc = { $dayOfMonth: '$date' };
+        date = { $lte: new Date(d), $gte: new Date(year, month, 1) }
+        break;
+    }
 
-//     var boxes = yield boxModel.find(where).sort({ date: 1 }).batchSize(1000000000);
+    var dataset = yield boxModel.aggregate([
+      { $match: { date: date, NodeId: parseInt(req.params.id) } },
+      { $group: { _id: acc, value: { $avg: '$' + req.params.type } } }
+    ], suspend.resume());
 
-//     var dataset = [];
-//     var last_date = false;
-//     var tmp = [];
-//     var dates = [];
-//     for (var i in boxes) { dates.push(boxes[i].date);
-//       if (last_date) {
+    dataset = dataset.sort(function(left, right) {
+      if (left._id < right._id) {
+        return -1;
+      }
+      else if (left._id === right._id) {
+        return 0;
+      }
+      else {
+        return 1;
+      }
+    });
 
-//         var new_date = true;
-//         var dt = new Date(boxes[i].date);
+    var data = [];
+    var labels = [];
 
-//         switch (req.params.range) {
-//           case 'hour':
-//             new_date = ((dt.getMinutes() - last_date.getMinutes()) >= 5);
-//             if (dt.getMinutes() == 59 && last_date.getMinutes() != 59) {
-//               new_date = true;
-//             }
-//             break;
-//           case 'day':
-//             new_date = (dt.getHours() !== last_date.getHours());
-//             break;
-//           case 'month':
-//             new_date = (dt.getDate() !== last_date.getDate());
-//             break;
-//           default:
-//             new_date =  (tmp.length > (boxes.length / 20));
-//         }
+    for (var i in dataset) {
+      if (dataset[i].value) {
+        data.push(dataset[i].value);
+      } else {
+        data.push(0);
+      }
 
-//         if (i == (boxes.length - 1)) {
-//           new_date = true;
-//           tmp.push(boxes[i]);
-//         }
+      labels.push(dataset[i]._id);
+    }
 
-//         if (new_date) {
-//           var av = 0;
-//           for (var j in tmp) {
-//             av += tmp[j]._doc[req.params.type];
-//           }
-//           av = av / tmp.length;
-//           dataset.push({
-//             date: last_date,
-//             value: av
-//           });
+    var chart = {
+      labels: labels,
+      datasets: [
+          {
+              label: "My First dataset",
+              fillColor: "rgba(220,220,220,0.2)",
+              strokeColor: "rgba(220,220,220,1)",
+              pointColor: "rgba(220,220,220,1)",
+              pointStrokeColor: "#fff",
+              pointHighlightFill: "#fff",
+              pointHighlightStroke: "rgba(220,220,220,1)",
+              data: data
+          }
+      ]
+    };
 
-//           tmp = [];
-//           last_date = new Date(boxes[i].date);
-//         }
-
-//         tmp.push(boxes[i]);
-//       } else {
-//         last_date = new Date(boxes[i].date);
-//         tmp.push(boxes[i]);
-//       }
-//     }
-
-//     var data = [];
-//     var labels = [];
-//     for (var i in dataset) {
-//       if (dataset[i].value && parseFloat(dataset[i].value)) {
-//         data.push(parseFloat(dataset[i].value));
-//       } else {
-//         data.push(0);
-//       }
-
-//       var dt = new Date(dataset[i].date);
-//       switch(req.params.range) {
-//         case 'hour':
-//           labels.push( dt.getMinutes());
-//           break;
-//         case 'day':
-//           labels.push(dt.getHours() + ':' + dt.getMinutes());
-//           break;
-//         case 'month':
-//           labels.push(dt.getDate() + '(' + dt.getHours() + ':' + dt.getMinutes() + ')');
-//           break;
-//         default:
-//           labels.push(dt);
-//       }
-//     }
-
-//     var chart = {
-//       labels: labels,
-//       datasets: [
-//           {
-//               label: "My First dataset",
-//               fillColor: "rgba(220,220,220,0.2)",
-//               strokeColor: "rgba(220,220,220,1)",
-//               pointColor: "rgba(220,220,220,1)",
-//               pointStrokeColor: "#fff",
-//               pointHighlightFill: "#fff",
-//               pointHighlightStroke: "rgba(220,220,220,1)",
-//               data: data
-//           }
-//       ]
-//     };
-
-//     res.render('chart', {
-//       type: req.params.type,
-//       data: chart,
-//       range: req.params.range
-//     });
-//   } catch(e) {
-//     console.log(e)
-//     res.json(e.toString());
-//   }
-
-
-// }));
+    res.render('chart', {
+      type: req.params.type,
+      data: chart,
+      range: req.params.range,
+      id: req.params.id,
+    });
+  } catch(e) {
+    res.json(e.toString());
+  }
+}));
 
 module.exports = router;

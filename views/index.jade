@@ -5,6 +5,14 @@ block content
 
   h3 Current data
   p #{current_data}
+  h3 Charts
+  each id in nodeIds
+    h5 Box ##{id}
+    ul.pagination
+      each field in fields
+        if field != 'NodeId'
+          li
+            a(href='/chart/#{id}/#{field}/month') #{field}
 
   h3 Historical data
     | &nbsp;

@@ -1,16 +1,18 @@
 extends layout
 
 block content
-  h3 Chart for #{type}
+  h3
+    | Chart for #{type} for #{id} 
+    a.btn.btn-primary(href='/') Home
 
   ul.pagination
-    each val in ['hour', 'day', 'month', 'all']
+    each val in ['hour', 'day', 'month']
       if val == range
         li.active
-          a(href='/chart/' + type + '/' + val) #{val}
+          a(href='/chart/#{id}/#{type}/#{val}') #{val}
       else
         li
-          a(href='/chart/' + type + '/' + val) #{val}
+          a(href='/chart/#{id}/#{type}/#{val}') #{val}
   br
 
   if data.labels.length === 0
