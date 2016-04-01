@@ -5,6 +5,7 @@ var suspend = require('suspend');
 var url = require('url');
 
 var boxModel = require('../models/box');
+var readingsModel = require('../models/readings');
 
 /* GET home page. */
 router.get('/', suspend.promise(function *(req, res, next) {
@@ -14,17 +15,17 @@ router.get('/', suspend.promise(function *(req, res, next) {
     var per_page = parseInt(query.per_page) || 50;
     var page = parseInt(query.page) || 1;
 
-    var boxes = yield boxModel.find({}).sort({ date: -1 }).skip((page-1) * per_page).limit(per_page);
+    var boxes = yield readingsModel.find({}).sort({ date: -1 }).skip((page-1) * per_page).limit(per_page);
 
-    var count = yield boxModel.count();
+    var count = yield readingsModel.count();
 
-    var nodeIds = yield boxModel.distinct('NodeId');
+    var nodeIds = yield readingsModel.distinct('box_id');
 
     var fields = [];
     for (var i in boxes) {
       var box = boxes[i]._doc;
       for (var j in box) {
-        if ((['id', '_id', 'external_id', 'type', 'date', '__v'].indexOf(j)) < 0 && (fields.indexOf(j) < 0)) {
+        if ((['id', '_id', 'external_id', 'type', 'date', '__v', 'box_id'].indexOf(j)) < 0 && (fields.indexOf(j) < 0)) {
           fields.push(j);
         }
       }
@@ -92,8 +93,8 @@ router.get('/chart/:id/:type/:range', suspend.promise(function*(req, res, next) 
         break;
     }
 
-    var dataset = yield boxModel.aggregate([
-      { $match: { date: date, NodeId: parseInt(req.params.id) } },
+    var dataset = yield readingsModel.aggregate([
+      { $match: { date: date, box_id: req.params.id } },
       { $group: { _id: acc, value: { $avg: '$' + req.params.type } } }
     ], suspend.resume());
 
