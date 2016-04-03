@@ -1,0 +1,8 @@
+{
+    "uid": "food-api",
+    "append": true,
+    "script": "app.js",
+    "sourceDir": "/home/deploy/apps/api",
+    "logFile": "/var/log/food-api.log",
+    "args": ["--port", "9000"]
+}
