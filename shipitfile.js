@@ -1,3 +1,5 @@
+var assert = require('assert');
+
 module.exports = function(shipit) {
   require('shipit-deploy')(shipit);
   require('shipit-npm')(shipit);
@@ -13,6 +15,9 @@ module.exports = function(shipit) {
     },
     production: {
       servers: 'deploy@utu-food-iot.me',
+      npm: {
+        installFlags: ['--production'],
+      },
     },
   });
 
@@ -21,11 +26,13 @@ module.exports = function(shipit) {
 
     return shipit.remote('forever stop food-api').then(function () {
       shipit.log('Forever stopped!');
+    }).catch(function() {
+      shipit.log('Forever was not running!');
     });
   });
 
   shipit.blTask('forever:start', function() {
-    var foreverCommand = 'forever start ' + shipit.currentPath + 'forever.json';
+    var foreverCommand = 'forever start ' + shipit.currentPath + '/forever.json';
     shipit.log('Starting forever...');
     assert.strictEqual(typeof(shipit.currentPath), 'string', 'Deploy directory undefined!');
 
@@ -35,7 +42,7 @@ module.exports = function(shipit) {
   });
 
 
-  shipit.on('deploy:finish', function() {
+  shipit.on('deployed', function() {
     shipit.start('forever:stop', 'forever:start');
   });
 };

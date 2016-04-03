@@ -2,7 +2,7 @@
     "uid": "food-api",
     "append": true,
     "script": "app.js",
-    "sourceDir": "/home/deploy/apps/api",
-    "logFile": "/var/log/food-api.log",
+    "sourceDir": "/home/deploy/apps/api/current",
+    "logFile": "/var/log/food-api/production.log",
     "args": ["--port", "9000"]
 }
