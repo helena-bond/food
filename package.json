@@ -17,5 +17,9 @@
     "node-cassandra-cql": "^0.4.4",
     "serve-favicon": "~2.3.0",
     "suspend": "^0.7.0"
+  },
+  "devDependencies": {
+    "shipit-deploy": "^2.1.3",
+    "shipit-npm": "^0.2.0"
   }
 }
